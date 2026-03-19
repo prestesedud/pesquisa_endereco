@@ -1,121 +1,98 @@
 'use client';
-
 import { useState } from 'react';
+import { SearchForm } from '@/components/SearchForm';
+import { SuggestionsList } from '@/components/SuggestionsList';
+import { Endereco } from '@/types/endereco';
 
-type Endereco = {
+interface AddressTypesProps {
+  uf?: string;
+  city?: string;
+  street?: string;
+}
+
+interface AddressTypeResponseProps {
   cep: string;
   logradouro: string;
+  complemento: string | null;
+  unidade: string | null;
   bairro: string;
   localidade: string;
   uf: string;
+  estado: string;
+  regiao: string;
   ibge: string;
-};
+  gia: string;
+  ddd: string;
+  siafi: string;
+}
+
+type TSuggestions = Pick<
+  AddressTypeResponseProps,
+  'cep' | 'logradouro' | 'bairro' | 'localidade' | 'uf'
+>;
+
+function buildUrlSearch({
+  uf,
+  city,
+  street,
+}: AddressTypesProps): string | null {
+  if (uf && city && street)
+    return `https://viacep.com.br/ws/${uf}/${city}/${street}/json/`;
+  return null;
+}
 
 export default function Home() {
-  const [cep, setCep] = useState('');
-  const [endereco, setEndereco] = useState<Endereco | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState('');
+  const [address, setAddress] = useState<AddressTypesProps>({
+    uf: '',
+    city: '',
+    street: '',
+  });
+  const [suggestion, setSuggestions] = useState<TSuggestions[] | null>(null);
 
-  function delay(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async function buscarCep() {
+  async function searchSuggestions() {
     try {
-      if (cep.length !== 8) {
-        setErro('Por favor, insira um CEP válido!');
-        return;
-      }
-
-      setErro('');
-      setLoading(true);
-
-      const startTime = Date.now();
-
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
-
-      const elapsed = Date.now() - startTime;
-      const MIN_TIME = 1000;
-
-      if (elapsed < MIN_TIME) {
-        await new Promise((resolve) => setTimeout(resolve, MIN_TIME - elapsed));
-      }
-
-      if (data.erro) {
-        setErro('CEP não encontrado');
-        setEndereco(null);
-      } else {
-        setEndereco(data);
+      const response = await fetch(buildUrlSearch( {...address })!);
+      
+      const json = (await response.json()) as TSuggestions[];
+      console.log(json)
+      if (json) {
+        const vectors: TSuggestions[] = json.map((item) => ({
+          uf: item.uf,
+          logradouro: item.logradouro,
+          bairro: item.bairro,
+          cep: item.cep,
+          localidade: item.localidade,
+        }));
+        setSuggestions(vectors);
       }
     } catch (error) {
-      setErro('Erro ao buscar o CEP');
-    } finally {
-      setLoading(false);
+      console.error('Error code: ', error);
     }
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-red-100">
-      <div className="bg-white p-8 rounded-xl shadow-md">
-        <h1 className="text-2xl font-bold text-red-500 mb-6 text-center">
-          Buscador de CEP
-        </h1>
-
-        <input
-          type="text"
-          placeholder="Digite o CEP"
-          value={cep}
-          onChange={(e) => setCep(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 rounded-lg shadow-sm placeholder:text-gray-400 text-gray-400"
+    <main>
+      <div>
+        <SearchForm
+          rua={address?.street ?? ''}
+          setRua={(value: string) =>
+            setAddress((prev) => ({ ...prev, street: value }))
+          }
+          cidade={address?.city ?? ''}
+          setCidade={(value: string) =>
+            setAddress((prev) => ({ ...prev, city: value }))
+          }
+          uf={address?.uf ?? ''}
+          setUf={(value: string) =>
+            setAddress((prev) => ({ ...prev, uf: value }))
+          }
+          onBuscar={searchSuggestions}
         />
+    {suggestion?.length ? (
+      <SuggestionsList sugestoes={suggestion} />
+    ) : null}
+            
 
-        <button
-          disabled={loading}
-          onClick={buscarCep}
-          className="mt-3 w-full bg-amber-400 text-white p-3 rounded-lg hover:bg-amber-300 transition"
-        >
-          {loading ? 'Buscando...' : 'Buscar'}
-        </button>
-
-        {erro && (
-          <p className="mt-4 bg-red-100 border border-red-300 text-red-600 rounded-lg text-sm font-medium p-3">
-            {erro}
-          </p>
-        )}
-
-        {loading && (
-          <div className="mt-4 flex justify-center">
-            <div className="w-6 h-6 border-4 border-amber-200 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        )}
-
-        {endereco && (
-          <div className="mt-6 space-y-2 text-red-600">
-            <p>
-              <strong>Rua: </strong> {endereco.logradouro}
-            </p>
-            <p>
-              <strong>Bairro: </strong> {endereco.bairro}
-            </p>
-            <p>
-              <strong>Cidade: </strong> {endereco.localidade}
-            </p>
-            <p>
-              <strong>Estado: </strong> {endereco.uf}
-            </p>
-
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${endereco.logradouro}, ${endereco.bairro}, ${endereco.localidade} - ${endereco.uf}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transitio"
-            >
-              Google Maps 📍
-            </a>
-          </div>
-        )}
       </div>
     </main>
   );
