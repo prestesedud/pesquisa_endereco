@@ -4,4 +4,5 @@ export type Endereco = {
   bairro: string;
   localidade: string;
   uf: string;
-}
+  numero: string;
+};

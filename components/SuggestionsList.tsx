@@ -1,28 +1,21 @@
 import { Endereco } from '@/types/endereco';
 import { ResultCard } from '@/components/ResultCard';
 import { useState } from 'react';
+import { TSuggestions } from '@/app/page'; // ou do arquivo onde você definiu
+
 type Props = {
-  sugestoes: Endereco[];
+  sugestoes: TSuggestions[];
 };
 
 export function SuggestionsList({ sugestoes }: Props) {
-  const [item, setItem] = useState<Endereco | null>(null);
   return (
-    <>
-      <div className="border rounded mt-2 bg-white shadow">
-        {sugestoes.map((item, index) => (
-          <div
-            key={index}
-            onClick={() => {
-              setItem(item);
-            }}
-            className="p-2 hover:bg-gray-100 cursor-pointer"
-          >
-            {item.logradouro} - {item.bairro} - CEP: {item.cep}
-          </div>
-        ))}
-      </div>
-      <ResultCard endereco={item} />
-    </>
+    <ul>
+      {sugestoes.map((sugestao) => (
+        <li key={sugestao.cep}>
+          {sugestao.logradouro}, {sugestao.bairro}, {sugestao.localidade} -{' '}
+          {sugestao.uf} ({sugestao.cep})
+        </li>
+      ))}
+    </ul>
   );
 }

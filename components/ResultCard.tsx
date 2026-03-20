@@ -1,11 +1,12 @@
 import { Endereco } from '@/types/endereco';
+import { TSuggestions } from '@/app/page';
 
-type Props = { endereco: Endereco | null };
+type Props = { endereco: TSuggestions | null };
 
 export function ResultCard({ endereco }: Props) {
   if (!endereco) return null;
 
-  const enderecoCompleto = `${endereco.logradouro},  ${endereco.bairro}, ${endereco.localidade}, ${endereco.uf}, ${endereco.cep}`;
+  const enderecoCompleto = `${endereco.logradouro}, ${endereco.numero}, ${endereco.bairro}, ${endereco.localidade}, ${endereco.uf}, ${endereco.cep}`;
 
   return (
     <div className="mt-6 border p-4 rounded bg-gray 100">
@@ -16,6 +17,7 @@ export function ResultCard({ endereco }: Props) {
       <a
         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(enderecoCompleto)}`}
         target="_blank"
+        rel="noopener noreferrer"
         className="
     mt-3 inline-block text-blue-500 hover:underline"
       >
